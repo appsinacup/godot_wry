@@ -1,0 +1,192 @@
+#!/usr/bin/env python
+from misc.utility.scons_hints import *
+import os
+import urllib.request
+import zipfile
+import platform
+import sys
+
+Import("env")
+Import("env_modules")
+
+#region GitHub Release Downloader
+def get_platform_target():
+    """Get the platform target for the GitHub release."""
+    platform_name = env["platform"]
+    if platform_name == "linuxbsd":
+        return "linux_x86_64"
+    elif platform_name == "windows":
+        arch = env["arch"]
+        if arch == "x86_64":
+            return "windows_x86_64"
+        elif arch == "x86_32":
+            return "windows_x86_32" 
+        elif arch == "arm64":
+            return "windows_arm64"
+    elif platform_name == "macos":
+        arch = env["arch"]
+        if arch == "x86_64":
+            return "macos_x86_64"
+        elif arch == "arm64":
+            return "macos_arm64"
+    print(f"Unsupported platform or architecture: {platform_name} {env['arch']}")
+    return None
+
+def download_and_extract_release():
+    """Download the GitHub release and extract static libraries."""
+    platform_target = get_platform_target()
+    if not platform_target:
+        print(f"Unsupported platform: {env['platform']}")
+        return False
+    
+    # GitHub release info
+    repo = "appsinacup/godot_wry"
+    release_url = f"https://api.github.com/repos/{repo}/releases/latest"
+    
+    # Create libs directory
+    libs_dir = "modules/godot_wry/libs"
+    os.makedirs(libs_dir, exist_ok=True)
+    
+    # Check if we already have the libraries
+    static_lib_path = f"{libs_dir}/libgodot_wry.a"
+    if env["platform"] == "windows":
+        static_lib_path = f"{libs_dir}/godot_wry.lib"
+    
+    if os.path.exists(static_lib_path):
+        print(f"Static library already exists: {static_lib_path}")
+        return True
+    
+    try:
+        print(f"Downloading godot_wry static libraries for {platform_target}...")
+        
+        # Get latest release info
+        with urllib.request.urlopen(release_url) as response:
+            import json
+            release_data = json.loads(response.read().decode())
+        
+        # Find the static libraries archive
+        download_url = None
+        for asset in release_data.get("assets", []):
+            if asset["name"] == "godot_wry_static_libraries.zip":
+                download_url = asset["browser_download_url"]
+                break
+        
+        if not download_url:
+            print("Could not find static libraries archive in release")
+            return False
+        
+        # Download the archive
+        archive_path = f"{libs_dir}/static_libs.zip"
+        urllib.request.urlretrieve(download_url, archive_path)
+        
+        # Extract the appropriate platform libraries
+        with zipfile.ZipFile(archive_path, 'r') as zip_ref:
+            # List all files in archive
+            for file_info in zip_ref.filelist:
+                file_path = file_info.filename
+                
+                # Check if this file is for our platform
+                platform_match = False
+                if platform_target == "linux_x86_64" and "x86_64-unknown-linux-gnu" in file_path:
+                    platform_match = True
+                elif platform_target == "windows_x86_64" and "x86_64-pc-windows-msvc" in file_path:
+                    platform_match = True
+                elif platform_target == "windows_x86_32" and "i686-pc-windows-msvc" in file_path:
+                    platform_match = True
+                elif platform_target == "windows_arm64" and "aarch64-pc-windows-msvc" in file_path:
+                    platform_match = True
+                elif platform_target == "macos_x86_64" and "x86_64-apple-darwin" in file_path:
+                    platform_match = True
+                elif platform_target == "macos_arm64" and "aarch64-apple-darwin" in file_path:
+                    platform_match = True
+                
+                if platform_match and (file_path.endswith('.a') or file_path.endswith('.lib')):
+                    # Extract the static library
+                    zip_ref.extract(file_info, libs_dir)
+                    # Move to root of libs directory
+                    extracted_path = os.path.join(libs_dir, file_path)
+                    final_path = os.path.join(libs_dir, os.path.basename(file_path))
+                    if extracted_path != final_path:
+                        os.rename(extracted_path, final_path)
+                    print(f"Extracted: {os.path.basename(file_path)}")
+        
+        # Clean up
+        os.remove(archive_path)
+        
+        # Remove any empty directories
+        for root, dirs, files in os.walk(libs_dir, topdown=False):
+            for dir_name in dirs:
+                dir_path = os.path.join(root, dir_name)
+                if not os.listdir(dir_path):
+                    os.rmdir(dir_path)
+        
+        return True
+        
+    except Exception as e:
+        print(f"Failed to download godot_wry libraries: {e}")
+        return False
+
+#endregion
+
+# Download the static libraries
+if not download_and_extract_release():
+    print("Warning: Could not download godot_wry static libraries")
+    print("You may need to manually place the static libraries in modules/godot_wry/libs/")
+
+# Setup environment
+env_godot_wry = env_modules.Clone()
+
+# Add include paths
+env_godot_wry.Append(CPPPATH=["modules/godot_wry"])
+
+# Link static libraries
+libs_dir = "modules/godot_wry/libs"
+if env["platform"] == "linuxbsd":
+    static_lib = f"{libs_dir}/libgodot_wry.a"
+    if os.path.exists(static_lib):
+        env.Append(LIBS=[env.File(f"#{static_lib}")])
+        print(f"Added static library: {static_lib}")
+    else:
+        print(f"Warning: Static library not found: {static_lib}")
+        
+elif env["platform"] == "windows":
+    static_lib = f"{libs_dir}/godot_wry.lib"
+    if os.path.exists(static_lib):
+        env.Append(LIBS=[env.File(f"#{static_lib}")])
+        print(f"Added static library: {static_lib}")
+    else:
+        print(f"Warning: Static library not found: {static_lib}")
+        
+elif env["platform"] in ["macos", "osx"]:
+    static_lib = f"{libs_dir}/libgodot_wry.a"
+    if os.path.exists(static_lib):
+        env.Append(LIBS=[env.File(f"#{static_lib}")])
+        print(f"Added static library: {static_lib}")
+    else:
+        print(f"Warning: Static library not found: {static_lib}")
+
+# Add platform-specific dependencies
+if env["platform"] == "linuxbsd":
+    # Linux dependencies for WRY
+    env.ParseConfig("pkg-config --cflags --libs gtk+-3.0")
+    env.ParseConfig("pkg-config --cflags --libs webkit2gtk-4.1")
+    
+elif env["platform"] == "windows":
+    # Windows dependencies for WRY
+    env.Append(LIBS=[
+        "user32", "kernel32", "gdi32", "winspool", "shell32", "ole32",
+        "oleaut32", "uuid", "comdlg32", "advapi32", "comctl32", "ws2_32",
+        "urlmon", "wininet", "shlwapi", "version", "dwmapi"
+    ])
+    
+elif env["platform"] in ["macos", "osx"]:
+    # macOS dependencies for WRY  
+    env.Append(LINKFLAGS=[
+        "-framework", "Cocoa",
+        "-framework", "WebKit", 
+        "-framework", "CoreServices",
+        "-framework", "Security"
+    ])
+
+# Add source files
+env.add_source_files(env.modules_sources, "register_types.cpp")

@@ -1,53 +1,155 @@
 on:
   push:
     branches: main
-    paths-ignore:
-      - "docs/**"
-      - "**.md"
   pull_request:
-    types: [opened, synchronize, reopened]
     branches: main
 
-name: 🤖 GDExtension
+name: 🤖 GDExtension Desktop Build
 
 jobs:
-  build:
-    name: 🏗️ Build / ${{ matrix.platform.os-name }}
-    strategy:
-      matrix:
-        platform:
-          - os-name: 🐧 Linux (64-bit)
-            runs-on: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-          - os-name: 🍎 macOS (Universal)
-            runs-on: macos-latest
-            target: universal-apple-darwin
-          - os-name: 🪟 Windows (64-bit)
-            runs-on: windows-latest
-            target: x86_64-pc-windows-msvc
-    runs-on: ${{ matrix.platform.runs-on }}
+  build-linux:
+    name: 🐧 Build Linux
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Install Linux dependencies
-        if: ${{ matrix.platform.runs-on == 'ubuntu-latest' }}
-        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libsoup-3.0-dev libwebkit2gtk-4.1-dev build-essential curl wget file libssl-dev libayatana-appindicator3-dev librsvg2-dev libjavascriptcoregtk-4.1-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libsoup-3.0-dev libwebkit2gtk-4.1-dev build-essential curl wget file libssl-dev libayatana-appindicator3-dev librsvg2-dev libjavascriptcoregtk-4.1-dev
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-        if: ${{ matrix.platform.runs-on != 'windows-latest' }} # Windows uses the system Rust
         with:
-          targets: ${{ matrix.platform.target == 'universal-apple-darwin' && 'aarch64-apple-darwin,x86_64-apple-darwin' || matrix.platform.target }}
+          targets: x86_64-unknown-linux-gnu
 
       - name: Install Just
         uses: extractions/setup-just@v1
 
-      - name: Build binaries
-        run: just ${{ matrix.platform.target == 'universal-apple-darwin' && 'build-macos-universal' || 'build' }}
+      - name: Build dynamic library
+        run: just build-linux-x64
+
+      - name: Build static library
+        run: just build-static-linux-x64
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
+          path: godot/addons/godot_wry/bin
+
+  build-windows:
+    name: 🪟 Build Windows
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            arch: x64
+            name: x86_64
+          - target: i686-pc-windows-msvc
+            arch: x32
+            name: x86_32
+          - target: aarch64-pc-windows-msvc
+            arch: arm64
+            name: arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Just
+        uses: extractions/setup-just@v1
+
+      - name: Build dynamic library
+        run: just build-windows-${{ matrix.arch }}
+
+      - name: Build static library
+        run: just build-static-windows-${{ matrix.arch }}
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.target }}-release
+          path: godot/addons/godot_wry/bin
+
+  build-macos:
+    name: 🍎 Build macOS
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-apple-darwin
+            arch: x64
+            name: x86_64
+          - target: aarch64-apple-darwin
+            arch: arm64
+            name: arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Just
+        uses: extractions/setup-just@v1
+
+      - name: Build dynamic library
+        run: just build-macos-${{ matrix.arch }}
+
+      - name: Build static library
+        run: just build-static-macos-${{ matrix.arch }}
 
       - name: Code sign and notarize library
-        if: ${{ matrix.platform.runs-on == 'macos-latest' && github.ref == 'refs/heads/main' }}
+        if: github.ref == 'refs/heads/main'
+        env:
+          APPLE_CERT_BASE64: ${{ secrets.APPLE_CERT_BASE64 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_DEV_ID: ${{ secrets.APPLE_DEV_ID }}
+          APPLE_DEV_TEAM_ID: ${{ secrets.APPLE_DEV_TEAM_ID }}
+          APPLE_DEV_PASSWORD: ${{ secrets.APPLE_DEV_PASSWORD }}
+          APPLE_DEV_APP_ID: ${{ secrets.APPLE_DEV_APP_ID }}
+        run: |
+          brew install --cask powershell
+          if [ -f "godot/addons/godot_wry/bin/${{ matrix.target }}/libgodot_wry.framework" ]; then
+            pwsh ./scripts/ci_sign_macos.ps1 godot/addons/godot_wry/bin/${{ matrix.target }}/libgodot_wry.framework
+          fi
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.target }}-release
+          path: godot/addons/godot_wry/bin
+
+  build-macos-universal:
+    name: 🍎 Build macOS Universal
+    runs-on: macos-latest
+    needs: [build-macos]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Install Just
+        uses: extractions/setup-just@v1
+
+      - name: Build universal binary
+        run: just build-macos-universal
+
+      - name: Code sign and notarize universal library
+        if: github.ref == 'refs/heads/main'
         env:
           APPLE_CERT_BASE64: ${{ secrets.APPLE_CERT_BASE64 }}
           APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
@@ -59,35 +161,155 @@ jobs:
           brew install --cask powershell
           pwsh ./scripts/ci_sign_macos.ps1 godot/addons/godot_wry/bin/universal-apple-darwin/libgodot_wry.framework
 
-      - name: Upload artifacts
+      - name: Upload macOS Universal artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.platform.target }}
-          path: |
-            godot/addons/godot_wry/bin/${{ matrix.platform.target }}
+          name: macos-universal-release
+          path: godot/addons/godot_wry/bin
 
-  zip:
-    name: 📦 Package
-    needs: build
+  release:
+    name: 🏷️ Create Release Draft
+    needs: [build-linux, build-windows, build-macos, build-macos-universal]
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download binaries
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: godot/addons/godot_wry/bin
+          path: artifacts
 
-      - name: Clean files
+      - name: Organize and create final packages
         run: |
-          mkdir -p package/godot_wry
-          mv godot/addons package/godot_wry
+          mkdir -p final_release
+          mkdir -p package/godot_wry/bin
+          
+          echo "Downloaded artifacts structure:"
+          find artifacts -type f | sort
+          
+          # Copy all binary files to package directory as-is
+          for artifact_dir in artifacts/*/; do
+            if [ -d "${artifact_dir}godot/addons/godot_wry/bin" ]; then
+              cp -r "${artifact_dir}godot/addons/godot_wry/bin"/* package/godot_wry/bin/ 2>/dev/null || true
+            fi
+          done
+          
+          # Copy addon files from the repository (excluding bin directory)
+          if [ -d "godot/addons/godot_wry" ]; then
+            find godot/addons/godot_wry -type f ! -path "*/bin/*" -exec cp --parents {} package/ \; 2>/dev/null || true
+          fi
+          
+          # Create platform-specific archives from the bin directory
+          cd package/godot_wry/bin
+          
+          # Linux archives (x86_64 only)
+          if [ -d "x86_64-unknown-linux-gnu" ]; then
+            zip -r ../../../final_release/godot_wry_linux_x86_64.zip x86_64-unknown-linux-gnu
+          fi
+          
+          # Windows archives
+          if [ -d "x86_64-pc-windows-msvc" ]; then
+            zip -r ../../../final_release/godot_wry_windows_x86_64.zip x86_64-pc-windows-msvc
+          fi
+          if [ -d "i686-pc-windows-msvc" ]; then
+            zip -r ../../../final_release/godot_wry_windows_x86_32.zip i686-pc-windows-msvc
+          fi
+          if [ -d "aarch64-pc-windows-msvc" ]; then
+            zip -r ../../../final_release/godot_wry_windows_arm64.zip aarch64-pc-windows-msvc
+          fi
+          
+          # macOS archives
+          if [ -d "x86_64-apple-darwin" ]; then
+            zip -r ../../../final_release/godot_wry_macos_x86_64.zip x86_64-apple-darwin
+          fi
+          if [ -d "aarch64-apple-darwin" ]; then
+            zip -r ../../../final_release/godot_wry_macos_arm64.zip aarch64-apple-darwin
+          fi
+          if [ -d "universal-apple-darwin" ]; then
+            zip -r ../../../final_release/godot_wry_macos_universal.zip universal-apple-darwin
+          fi
+          
+          # Create static libraries archive from the static directory
+          if [ -d "static" ]; then
+            cd static
+            zip -r ../../../../final_release/godot_wry_static_libraries.zip .
+            cd ..
+          else
+            echo "Warning: No static directory found"
+            touch ../../../final_release/godot_wry_static_libraries.zip
+          fi
+          
+          cd ../../..
+          
+          # Create complete addon package
+          cd package
+          zip -r ../final_release/godot_wry_complete.zip godot_wry
+          cd ..
+          
+          echo "Final release files:"
+          ls -la final_release/
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Create GitHub Release Draft
+        uses: softprops/action-gh-release@v2
         with:
-          name: godot_wry
-          path: package
+          name: "Godot Wry Build - $(date +'%Y-%m-%d %H:%M:%S')"
+          draft: true
+          body: |
+            # Godot Wry - Automated Build
 
-  #TODO: release:
+            Multi-platform GDExtension library for integrating web views into Godot desktop projects.
+            
+            🤖 **Auto-generated draft release** from latest main branch build.
+
+            ## Desktop Platforms Supported:
+
+            ### Linux
+            - x86_64 (64-bit) - Dynamic and Static libraries
+
+            ### Windows  
+            - x86_64 (64-bit)
+            - i686 (32-bit)
+            - ARM64
+
+            ### macOS
+            - x86_64 (Intel)
+            - ARM64 (Apple Silicon)
+            - Universal (Intel + Apple Silicon)
+
+            ## Downloads:
+
+            - **Complete Package**: Contains all platforms and addon files
+            - **Static Libraries**: Contains static libraries for all platforms
+            - **Platform-specific**: Individual archives for each platform
+
+            ## Installation:
+
+            1. Download the complete package or your specific platform archive
+            2. Extract to your Godot project's `addons/` folder
+            3. Enable the plugin in Project Settings
+
+            ## Notes:
+
+            - Static libraries are provided for platforms that support them
+            - Focuses on desktop platforms: Linux, Windows, macOS
+            - Cross-platform web view integration using WRY
+            
+            ## Build Information:
+            
+            - **Commit**: ${{ github.sha }}
+            - **Branch**: ${{ github.ref_name }}
+            - **Build Time**: $(date +'%Y-%m-%d %H:%M:%S UTC')
+          files: |
+            final_release/godot_wry_complete.zip
+            final_release/godot_wry_static_libraries.zip
+            final_release/godot_wry_linux_x86_64.zip
+            final_release/godot_wry_windows_x86_64.zip
+            final_release/godot_wry_windows_x86_32.zip
+            final_release/godot_wry_windows_arm64.zip
+            final_release/godot_wry_macos_x86_64.zip
+            final_release/godot_wry_macos_arm64.zip
+            final_release/godot_wry_macos_universal.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
