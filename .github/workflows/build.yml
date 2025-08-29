@@ -247,51 +247,6 @@ jobs:
         with:
           name: "Godot Wry Build - $(date +'%Y-%m-%d %H:%M:%S')"
           draft: true
-          body: |
-            # Godot Wry - Automated Build
-
-            Multi-platform GDExtension library for integrating web views into Godot desktop projects.
-            
-            🤖 **Auto-generated draft release** from latest main branch build.
-
-            ## Desktop Platforms Supported:
-
-            ### Linux
-            - x86_64 (64-bit) - Dynamic and Static libraries
-
-            ### Windows  
-            - x86_64 (64-bit)
-            - i686 (32-bit)
-            - ARM64
-
-            ### macOS
-            - x86_64 (Intel)
-            - ARM64 (Apple Silicon)
-            - Universal (Intel + Apple Silicon)
-
-            ## Downloads:
-
-            - **Complete Package**: Contains all platforms and addon files
-            - **Static Libraries**: Contains static libraries for all platforms
-            - **Platform-specific**: Individual archives for each platform
-
-            ## Installation:
-
-            1. Download the complete package or your specific platform archive
-            2. Extract to your Godot project's `addons/` folder
-            3. Enable the plugin in Project Settings
-
-            ## Notes:
-
-            - Static libraries are provided for platforms that support them
-            - Focuses on desktop platforms: Linux, Windows, macOS
-            - Cross-platform web view integration using WRY
-            
-            ## Build Information:
-            
-            - **Commit**: ${{ github.sha }}
-            - **Branch**: ${{ github.ref_name }}
-            - **Build Time**: $(date +'%Y-%m-%d %H:%M:%S UTC')
           files: |
             final_release/*.zip
         env:
