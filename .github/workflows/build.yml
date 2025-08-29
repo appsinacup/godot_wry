@@ -187,57 +187,50 @@ jobs:
           echo "Downloaded artifacts structure:"
           find artifacts -type f | sort
           
-          # Copy all binary files to package directory as-is
+          # Copy all binary files to package directory
+          # Since we upload just the bin folder, artifacts now contain bin contents directly
           for artifact_dir in artifacts/*/; do
-            if [ -d "${artifact_dir}godot/addons/godot_wry/bin" ]; then
-              cp -r "${artifact_dir}godot/addons/godot_wry/bin"/* package/godot_wry/bin/ 2>/dev/null || true
-            fi
+            cp -r "${artifact_dir}"* package/godot_wry/bin/ 2>/dev/null || true
           done
           
           # Copy addon files from the repository (excluding bin directory)
-          if [ -d "godot/addons/godot_wry" ]; then
-            find godot/addons/godot_wry -type f ! -path "*/bin/*" -exec cp --parents {} package/ \; 2>/dev/null || true
-          fi
+          find godot/addons/godot_wry -type f ! -path "*/bin/*" -exec cp --parents {} package/ \;
+          
+          echo "Final bin structure:"
+          find package/godot_wry/bin -type f | sort
           
           # Create platform-specific archives from the bin directory
           cd package/godot_wry/bin
           
           # Linux archives (x86_64 only)
-          if [ -d "x86_64-unknown-linux-gnu" ]; then
-            zip -r ../../../final_release/godot_wry_linux_x86_64.zip x86_64-unknown-linux-gnu
-          fi
+          zip -r ../../../final_release/godot_wry_linux_x86_64.zip x86_64-unknown-linux-gnu
+          echo "Created Linux x86_64 archive"
           
           # Windows archives
-          if [ -d "x86_64-pc-windows-msvc" ]; then
-            zip -r ../../../final_release/godot_wry_windows_x86_64.zip x86_64-pc-windows-msvc
-          fi
-          if [ -d "i686-pc-windows-msvc" ]; then
-            zip -r ../../../final_release/godot_wry_windows_x86_32.zip i686-pc-windows-msvc
-          fi
-          if [ -d "aarch64-pc-windows-msvc" ]; then
-            zip -r ../../../final_release/godot_wry_windows_arm64.zip aarch64-pc-windows-msvc
-          fi
+          zip -r ../../../final_release/godot_wry_windows_x86_64.zip x86_64-pc-windows-msvc
+          echo "Created Windows x86_64 archive"
+          
+          zip -r ../../../final_release/godot_wry_windows_x86_32.zip i686-pc-windows-msvc
+          echo "Created Windows x86_32 archive"
+          
+          zip -r ../../../final_release/godot_wry_windows_arm64.zip aarch64-pc-windows-msvc
+          echo "Created Windows ARM64 archive"
           
           # macOS archives
-          if [ -d "x86_64-apple-darwin" ]; then
-            zip -r ../../../final_release/godot_wry_macos_x86_64.zip x86_64-apple-darwin
-          fi
-          if [ -d "aarch64-apple-darwin" ]; then
-            zip -r ../../../final_release/godot_wry_macos_arm64.zip aarch64-apple-darwin
-          fi
-          if [ -d "universal-apple-darwin" ]; then
-            zip -r ../../../final_release/godot_wry_macos_universal.zip universal-apple-darwin
-          fi
+          zip -r ../../../final_release/godot_wry_macos_x86_64.zip x86_64-apple-darwin
+          echo "Created macOS x86_64 archive"
+          
+          zip -r ../../../final_release/godot_wry_macos_arm64.zip aarch64-apple-darwin
+          echo "Created macOS ARM64 archive"
+          
+          zip -r ../../../final_release/godot_wry_macos_universal.zip universal-apple-darwin
+          echo "Created macOS Universal archive"
           
           # Create static libraries archive from the static directory
-          if [ -d "static" ]; then
-            cd static
-            zip -r ../../../../final_release/godot_wry_static_libraries.zip .
-            cd ..
-          else
-            echo "Warning: No static directory found"
-            touch ../../../final_release/godot_wry_static_libraries.zip
-          fi
+          cd static
+          zip -r ../../../../final_release/godot_wry_static_libraries.zip .
+          echo "Created static libraries archive"
+          cd ..
           
           cd ../../..
           
@@ -300,14 +293,6 @@ jobs:
             - **Branch**: ${{ github.ref_name }}
             - **Build Time**: $(date +'%Y-%m-%d %H:%M:%S UTC')
           files: |
-            final_release/godot_wry_complete.zip
-            final_release/godot_wry_static_libraries.zip
-            final_release/godot_wry_linux_x86_64.zip
-            final_release/godot_wry_windows_x86_64.zip
-            final_release/godot_wry_windows_x86_32.zip
-            final_release/godot_wry_windows_arm64.zip
-            final_release/godot_wry_macos_x86_64.zip
-            final_release/godot_wry_macos_arm64.zip
-            final_release/godot_wry_macos_universal.zip
+            final_release/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
