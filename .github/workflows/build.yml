@@ -245,7 +245,7 @@ jobs:
       - name: Create GitHub Release Draft
         uses: softprops/action-gh-release@v2
         with:
-          name: "Godot Wry Build - $(date +'%Y-%m-%d %H:%M:%S')"
+          name: Godot Wry Build
           draft: true
           files: |
             final_release/*.zip
