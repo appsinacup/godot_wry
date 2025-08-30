@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="WebView" inherits="Control" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../doc/class.xsd">
+	<brief_description>
+		A cross-platform WebView control that embeds web content directly into Godot applications.
+	</brief_description>
+	<description>
+		WebView is a Control node that provides native web browser functionality within Godot applications. It uses the WRY (Web Rendering Library) to create platform-native webviews on Windows (WebView2), macOS (WKWebView), and Linux (WebKitGTK).
+
+		The WebView control supports loading web content from URLs or HTML strings, bidirectional communication through IPC (Inter-Process Communication), and optional input event forwarding between the web content and Godot.
+
+		Key features:
+		- Cross-platform native webview integration
+		- Support for both URL and HTML content loading
+		- Bidirectional communication via IPC messages
+		- Optional input event forwarding from web to Godot
+		- Developer tools support for debugging
+		- Custom protocol support (res://) for loading Godot resources
+		- Transparent backgrounds and customizable appearance
+
+		Note: WebView requires a windowed display server and will not function in headless mode.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="clear_all_browsing_data" qualifiers="const">
+			<return type="void" />
+			<description>
+				Clears all browsing data including cookies, cache, and stored data from the webview.
+			</description>
+		</method>
+		<method name="close_devtools" qualifiers="const">
+			<return type="void" />
+			<description>
+				Closes the developer tools window if it is currently open.
+			</description>
+		</method>
+		<method name="create_webview">
+			<return type="void" />
+			<description>
+				Creates and initializes the webview. This method is automatically called during the ready() phase, but can be called manually if needed. Will not create a webview in headless mode.
+			</description>
+		</method>
+		<method name="eval" qualifiers="const">
+			<return type="void" />
+			<param index="0" name="script" type="String" />
+			<description>
+				Evaluates JavaScript code within the webview context. The script will be executed asynchronously.
+			</description>
+		</method>
+		<method name="focus" qualifiers="const">
+			<return type="void" />
+			<description>
+				Sets focus to the webview, allowing it to receive input events.
+			</description>
+		</method>
+		<method name="focus_parent" qualifiers="const">
+			<return type="void" />
+			<description>
+				Moves focus back to the parent window, taking focus away from the webview.
+			</description>
+		</method>
+		<method name="is_devtools_open" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Returns [code]true[/code] if the developer tools window is currently open, [code]false[/code] otherwise.
+			</description>
+		</method>
+		<method name="load_html" qualifiers="const">
+			<return type="void" />
+			<param index="0" name="html" type="String" />
+			<description>
+				Loads HTML content directly into the webview. This will replace any currently loaded content. Note: You cannot set both a URL and HTML content simultaneously.
+			</description>
+		</method>
+		<method name="load_url" qualifiers="const">
+			<return type="void" />
+			<param index="0" name="url" type="String" />
+			<description>
+				Navigates the webview to the specified URL. This will replace any currently loaded content. Note: You cannot set both a URL and HTML content simultaneously.
+			</description>
+		</method>
+		<method name="open_devtools" qualifiers="const">
+			<return type="void" />
+			<description>
+				Opens the developer tools window for debugging the web content. Only available if [member devtools] is enabled.
+			</description>
+		</method>
+		<method name="post_message" qualifiers="const">
+			<return type="void" />
+			<param index="0" name="message" type="String" />
+			<description>
+				Sends a message to the web content. The message will be dispatched as a CustomEvent named 'message' with the message content in the 'detail' property. This enables communication from Godot to the web content.
+			</description>
+		</method>
+		<method name="print" qualifiers="const">
+			<return type="void" />
+			<description>
+				Opens the browser's print dialog for the current web content.
+			</description>
+		</method>
+		<method name="reload" qualifiers="const">
+			<return type="void" />
+			<description>
+				Reloads the current web content, equivalent to pressing F5 in a browser.
+			</description>
+		</method>
+		<method name="resize" qualifiers="const">
+			<return type="void" />
+			<description>
+				Updates the webview's bounds to match the current control size and position. This is automatically called when the control or viewport size changes.
+			</description>
+		</method>
+		<method name="set_visible" qualifiers="const">
+			<return type="void" />
+			<param index="0" name="visibility" type="bool" />
+			<description>
+				Sets the visibility of the webview. When [code]false[/code], the webview is hidden but continues to run in the background.
+			</description>
+		</method>
+		<method name="update_visibility" qualifiers="const">
+			<return type="void" />
+			<description>
+				Updates the webview's visibility based on the control's visibility in the scene tree. This is automatically called when the control's visibility changes.
+			</description>
+		</method>
+		<method name="update_webview">
+			<return type="void" />
+			<description>
+				Updates the webview's position and size if they have changed since the last frame. This method is automatically called during the process() function and handles platform-specific event processing.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="autoplay" type="bool" setter="set_autoplay" getter="get_autoplay" default="false">
+			Enable autoplay for media content. When [code]true[/code], audio and video elements can play automatically without user interaction.
+		</member>
+		<member name="background_color" type="Color" setter="set_background_color" getter="get_background_color" default="Color(1, 1, 1, 1)">
+			The background color of the webview. This color is shown while the web content is loading or when the content has a transparent background.
+		</member>
+		<member name="clipboard" type="bool" setter="set_clipboard" getter="get_clipboard" default="true">
+			Enable clipboard access for the web content. When [code]true[/code], web pages can read from and write to the system clipboard.
+		</member>
+		<member name="devtools" type="bool" setter="set_devtools" getter="get_devtools" default="true">
+			Enable developer tools. When [code]true[/code], developer tools can be opened using [method open_devtools].
+		</member>
+		<member name="focused_when_created" type="bool" setter="set_focused_when_created" getter="get_focused_when_created" default="true">
+			Whether the webview should receive focus when it is first created. When [code]true[/code], the webview will be ready to receive input immediately after creation.
+		</member>
+		<member name="forward_input_events" type="bool" setter="set_forward_input_events" getter="get_forward_input_events" default="true">
+			Enable forwarding of mouse and keyboard input events from the web content to Godot. When [code]true[/code], interactions within the webview will trigger corresponding InputEvent signals in Godot.
+		</member>
+		<member name="full_window_size" type="bool" setter="set_full_window_size" getter="get_full_window_size" default="true">
+			Whether the webview should fill the entire window or just the control's bounds. When [code]true[/code], the webview covers the entire application window regardless of the control's size.
+		</member>
+		<member name="headers" type="Dictionary" setter="set_headers" getter="get_headers" default="{}">
+			Additional HTTP headers to send with requests. Keys should be header names and values should be header values.
+		</member>
+		<member name="html" type="String" setter="set_html" getter="get_html" default="&quot;&quot;">
+			HTML content to display in the webview. If both [member html] and [member url] are set, only one will be used and an error will be logged. Use [method load_html] to load HTML content at runtime.
+		</member>
+		<member name="incognito" type="bool" setter="set_incognito" getter="get_incognito" default="false">
+			Enable incognito/private browsing mode. When [code]true[/code], the webview runs in private mode with no persistent storage of cookies, cache, or browsing data.
+		</member>
+		<member name="transparent" type="bool" setter="set_transparent" getter="get_transparent" default="false">
+			Enable transparent background for the webview. When [code]true[/code], the webview background becomes transparent, allowing Godot content to show through transparent areas of the web content.
+		</member>
+		<member name="url" type="String" setter="set_url" getter="get_url" default="&quot;https://github.com/doceazedo/godot_wry&quot;">
+			URL to load in the webview. If both [member url] and [member html] are set, only one will be used and an error will be logged. Use [method load_url] to navigate to a URL at runtime.
+		</member>
+		<member name="user_agent" type="String" setter="set_user_agent" getter="get_user_agent" default="&quot;&quot;">
+			Custom user agent string to send with HTTP requests. If empty, the default user agent for the platform's webview will be used.
+		</member>
+		<member name="zoom_hotkeys" type="bool" setter="set_zoom_hotkeys" getter="get_zoom_hotkeys" default="false">
+			Enable zoom keyboard shortcuts (Ctrl+Plus, Ctrl+Minus, Ctrl+0). When [code]true[/code], users can zoom the web content using standard browser keyboard shortcuts.
+		</member>
+	</members>
+	<signals>
+		<signal name="ipc_message">
+			<param index="0" name="message" type="String" />
+			<description>
+				Emitted when the web content sends a message to Godot using the IPC (Inter-Process Communication) mechanism. The web content can send messages using [code]window.ipc.postMessage(data)[/code].
+			</description>
+		</signal>
+	</signals>
+</class>

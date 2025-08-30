@@ -16,5 +16,5 @@ dist/
 bin/
 .DS_Store
 .env
-modules/godot_wry/libs/libgodot_wry.a
 libs/libgodot_wry.a
+*.pyc
