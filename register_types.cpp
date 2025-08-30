@@ -56,7 +56,7 @@ public:
 
 extern "C" {
 GDExtensionBool
-godot_wry_init(GDExtensionInterfaceGetProcAddress p_get_proc_address,
+gdext_rust_init(GDExtensionInterfaceGetProcAddress p_get_proc_address,
                 GDExtensionClassLibraryPtr p_library,
                 GDExtensionInitialization *r_initialization);
 }
@@ -71,7 +71,7 @@ void initialize_godot_wry_module(ModuleInitializationLevel p_level) {
 
   Ref<GDExtensionStaticLibraryLoader> loader;
   loader.instantiate();
-  loader->set_entry_funcptr((void *)&godot_wry_init);
+  loader->set_entry_funcptr((void *)&gdext_rust_init);
   GDExtensionManager::get_singleton()->load_extension_with_loader("godot_wry",
                                                                   loader);
 }

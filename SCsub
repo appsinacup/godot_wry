@@ -44,7 +44,7 @@ def download_and_extract_release():
     release_url = f"https://api.github.com/repos/{repo}/releases/latest"
     
     # Create libs directory
-    libs_dir = "modules/godot_wry/libs"
+    libs_dir = "libs"
     os.makedirs(libs_dir, exist_ok=True)
     
     # Check if we already have the libraries
@@ -140,11 +140,11 @@ env_godot_wry = env_modules.Clone()
 env_godot_wry.Append(CPPPATH=["modules/godot_wry"])
 
 # Link static libraries
-libs_dir = "modules/godot_wry/libs"
+libs_dir = "libs"
 if env["platform"] == "linuxbsd":
     static_lib = f"{libs_dir}/libgodot_wry.a"
     if os.path.exists(static_lib):
-        env.Append(LIBS=[env.File(f"#{static_lib}")])
+        env.Append(LIBS=[env.File(f"{static_lib}")])
         print(f"Added static library: {static_lib}")
     else:
         print(f"Warning: Static library not found: {static_lib}")
@@ -152,7 +152,7 @@ if env["platform"] == "linuxbsd":
 elif env["platform"] == "windows":
     static_lib = f"{libs_dir}/godot_wry.lib"
     if os.path.exists(static_lib):
-        env.Append(LIBS=[env.File(f"#{static_lib}")])
+        env.Append(LIBS=[env.File(f"{static_lib}")])
         print(f"Added static library: {static_lib}")
     else:
         print(f"Warning: Static library not found: {static_lib}")
@@ -160,7 +160,7 @@ elif env["platform"] == "windows":
 elif env["platform"] in ["macos", "osx"]:
     static_lib = f"{libs_dir}/libgodot_wry.a"
     if os.path.exists(static_lib):
-        env.Append(LIBS=[env.File(f"#{static_lib}")])
+        env.Append(LIBS=[env.File(f"{static_lib}")])
         print(f"Added static library: {static_lib}")
     else:
         print(f"Warning: Static library not found: {static_lib}")
