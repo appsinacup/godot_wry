@@ -121,6 +121,7 @@ build-static-linux-x64:
 	mkdir -p ../godot/addons/godot_wry/bin/static/x86_64-unknown-linux-gnu
 	cp ./target/x86_64-unknown-linux-gnu/release/libgodot_wry.a ../godot/addons/godot_wry/bin/static/x86_64-unknown-linux-gnu/
 	# For local Godot module build/testing (SCons expects in libs/)
+	mkdir -p ../libs
 	cp ./target/x86_64-unknown-linux-gnu/release/libgodot_wry.a ../libs/libgodot_wry.a
 
 build-static-windows-x64:
@@ -129,6 +130,7 @@ build-static-windows-x64:
 	mkdir -p ../godot/addons/godot_wry/bin/static/x86_64-pc-windows-msvc
 	cp ./target/x86_64-pc-windows-msvc/release/godot_wry.lib ../godot/addons/godot_wry/bin/static/x86_64-pc-windows-msvc/
 	# For local Godot module build/testing (SCons expects in libs/)
+	mkdir -p ../libs
 	cp ./target/x86_64-pc-windows-msvc/release/godot_wry.lib ../libs/godot_wry.lib
 
 build-static-windows-x32:
@@ -137,6 +139,7 @@ build-static-windows-x32:
 	mkdir -p ../godot/addons/godot_wry/bin/static/i686-pc-windows-msvc
 	cp ./target/i686-pc-windows-msvc/release/godot_wry.lib ../godot/addons/godot_wry/bin/static/i686-pc-windows-msvc/
 	# For local Godot module build/testing (SCons expects in libs/)
+	mkdir -p ../libs
 	cp ./target/i686-pc-windows-msvc/release/godot_wry.lib ../libs/godot_wry.lib
 
 build-static-windows-arm64:
@@ -145,6 +148,7 @@ build-static-windows-arm64:
 	mkdir -p ../godot/addons/godot_wry/bin/static/aarch64-pc-windows-msvc
 	cp ./target/aarch64-pc-windows-msvc/release/godot_wry.lib ../godot/addons/godot_wry/bin/static/aarch64-pc-windows-msvc/
 	# For local Godot module build/testing (SCons expects in libs/)
+	mkdir -p ../libs
 	cp ./target/aarch64-pc-windows-msvc/release/godot_wry.lib ../libs/godot_wry.lib
 
 build-static-macos-x64:
@@ -153,6 +157,7 @@ build-static-macos-x64:
 	mkdir -p ../godot/addons/godot_wry/bin/static/x86_64-apple-darwin
 	cp ./target/x86_64-apple-darwin/release/libgodot_wry.a ../godot/addons/godot_wry/bin/static/x86_64-apple-darwin/
 	# For local Godot module build/testing (SCons expects in libs/)
+	mkdir -p ../libs
 	cp ./target/x86_64-apple-darwin/release/libgodot_wry.a ../libs/libgodot_wry.a
 
 build-static-macos-arm64:
@@ -161,5 +166,6 @@ build-static-macos-arm64:
 	mkdir -p ../godot/addons/godot_wry/bin/static/aarch64-apple-darwin
 	cp ./target/aarch64-apple-darwin/release/libgodot_wry.a ../godot/addons/godot_wry/bin/static/aarch64-apple-darwin/
 	# For local Godot module build/testing (SCons expects in libs/)
+	mkdir -p ../libs
 	cp ./target/aarch64-apple-darwin/release/libgodot_wry.a ../libs/libgodot_wry.a
 
