@@ -175,10 +175,22 @@
 		</member>
 	</members>
 	<signals>
+		<signal name="document_title_changed">
+			<param index="0" name="title" type="String" />
+			<description>
+				Emitted when the document title changes. The new title is provided as a parameter.
+			</description>
+		</signal>
 		<signal name="ipc_message">
 			<param index="0" name="message" type="String" />
 			<description>
 				Emitted when the web content sends a message to Godot using the IPC (Inter-Process Communication) mechanism. The web content can send messages using [code]window.ipc.postMessage(data)[/code].
+			</description>
+		</signal>
+		<signal name="navigation_requested">
+			<param index="0" name="url" type="String" />
+			<description>
+				Emitted when the webview is about to navigate to a new URL. The URL being navigated to is provided as a parameter.
 			</description>
 		</signal>
 	</signals>
