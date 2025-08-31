@@ -414,13 +414,8 @@ impl WebView {
                     size: PhysicalSize::new(viewport_size.x, viewport_size.y).into(),
                 }
             } else {
-                // Get the global position relative to the viewport/window content area
-                let _global_pos = self.base().get_global_position();
                 let size = self.base().get_size();
                 
-                // On macOS, we need to account for the window title bar offset
-                // The webview expects coordinates relative to the window content area
-                #[cfg(target_os = "macos")]
                 let adjusted_pos = {
                     // Get the window's content area offset (title bar height, etc.)
                     let window = self.base().get_viewport().expect("Could not get viewport").get_window().expect("Could not get window");
@@ -433,9 +428,6 @@ impl WebView {
                         screen_pos.y - window_pos.y as f32
                     )
                 };
-                
-                #[cfg(not(target_os = "macos"))]
-                let adjusted_pos = global_pos;
                 
                 Rect {
                     position: PhysicalPosition::new(adjusted_pos.x as i32, adjusted_pos.y as i32).into(),
