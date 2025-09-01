@@ -168,8 +168,7 @@ def download_and_extract_release():
 
 # Download the static libraries
 try:
-    if env.get("target") == "editor":
-        download_and_extract_release()
+    download_and_extract_release()
 except RuntimeError as e:
     print(f"Error: {e}")
     print("You may need to manually place the static libraries in modules/godot_wry/libs/")
@@ -207,31 +206,29 @@ elif env["platform"] in ["macos", "osx"]:
     else:
         print(f"Warning: Static library not found: {static_lib}")
 
-# Add platform-specific dependencies only for editor builds
-if env.get("target") == "editor":
-    if env["platform"] == "linuxbsd":
-        # Linux dependencies for WRY
-        #env.ParseConfig("pkg-config --cflags --libs gtk+-3.0")
-        #env.ParseConfig("pkg-config --cflags --libs webkit2gtk-4.1")
-        pass
+if env["platform"] == "linuxbsd":
+    # Linux dependencies for WRY
+    #env.ParseConfig("pkg-config --cflags --libs gtk+-3.0")
+    #env.ParseConfig("pkg-config --cflags --libs webkit2gtk-4.1")
+    pass
 
-    elif env["platform"] == "windows":
-        pass
+elif env["platform"] == "windows":
+    pass
 
-    elif env["platform"] in ["macos"]:
-        # macOS dependencies for WRY
-        env.Append(
-            LINKFLAGS=[
-                "-framework",
-                "Cocoa",
-                "-framework",
-                "WebKit",
-                "-framework",
-                "CoreServices",
-                "-framework",
-                "Security",
-            ]
-        )
+elif env["platform"] in ["macos"]:
+    # macOS dependencies for WRY
+    env.Append(
+        LINKFLAGS=[
+            "-framework",
+            "Cocoa",
+            "-framework",
+            "WebKit",
+            "-framework",
+            "CoreServices",
+            "-framework",
+            "Security",
+        ]
+    )
 
 # Add source files
 env.add_source_files(env.modules_sources, "register_types.cpp")
