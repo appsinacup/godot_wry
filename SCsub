@@ -4,6 +4,7 @@ from misc.utility.scons_hints import *
 import os
 import urllib.request
 import zipfile
+import time
 
 Import("env")
 Import("env_modules")
@@ -37,8 +38,7 @@ def download_and_extract_release():
     """Download the GitHub release and extract static libraries."""
     platform_target = get_platform_target()
     if not platform_target:
-        print(f"Unsupported platform: {env['platform']}")
-        return False
+        raise RuntimeError(f"Unsupported platform: {env['platform']}")
 
     # GitHub release info
     repo = "appsinacup/godot_wry"
@@ -61,11 +61,33 @@ def download_and_extract_release():
     try:
         print(f"Downloading godot_wry static libraries for {platform_target}...")
 
-        # Get latest release info
-        with urllib.request.urlopen(release_url) as response:
-            import json
-
-            release_data = json.loads(response.read().decode())
+        # Get latest release info with authentication if available
+        request = urllib.request.Request(release_url)
+        
+        # Add GitHub token if available (for CI/CD)
+        github_token = os.environ.get('GITHUB_TOKEN')
+        if github_token:
+            request.add_header('Authorization', f'token {github_token}')
+            print("Using GitHub token for authentication")
+        else:
+            print("No GitHub token found - using unauthenticated requests (may hit rate limits)")
+        
+        # Retry logic for rate limiting
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                with urllib.request.urlopen(request) as response:
+                    import json
+                    release_data = json.loads(response.read().decode())
+                break  # Success, exit retry loop
+            except urllib.error.HTTPError as e:
+                if e.code == 403 and "rate limit" in str(e).lower() and attempt < max_retries - 1:
+                    wait_time = (attempt + 1) * 10  # Wait 10, 20, 30 seconds
+                    print(f"Rate limit hit, waiting {wait_time} seconds before retry {attempt + 2}/{max_retries}...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    raise  # Re-raise if not rate limit or final attempt
 
         # Find the static libraries archive
         download_url = None
@@ -75,8 +97,7 @@ def download_and_extract_release():
                 break
 
         if not download_url:
-            print("Could not find static libraries archive in release")
-            return False
+            raise RuntimeError("Could not find static libraries archive in release")
 
         # Download the archive
         archive_path = f"{libs_dir}/static_libs.zip"
@@ -123,19 +144,22 @@ def download_and_extract_release():
                 if not os.listdir(dir_path):
                     os.rmdir(dir_path)
 
-        return True
+        print("Download and extraction completed successfully!")
 
     except Exception as e:
         print(f"Failed to download godot_wry libraries: {e}")
-        return False
+        raise RuntimeError(f"Could not download godot_wry static libraries for {platform_target}: {e}")
 
 
 # endregion
 
 # Download the static libraries
-if not download_and_extract_release():
-    print("Warning: Could not download godot_wry static libraries")
+try:
+    download_and_extract_release()
+except RuntimeError as e:
+    print(f"Error: {e}")
     print("You may need to manually place the static libraries in modules/godot_wry/libs/")
+    raise  # Re-raise to fail the build
 
 # Setup environment
 env_godot_wry = env_modules.Clone()
@@ -169,50 +193,31 @@ elif env["platform"] in ["macos", "osx"]:
     else:
         print(f"Warning: Static library not found: {static_lib}")
 
-# Add platform-specific dependencies
-if env["platform"] == "linuxbsd":
-    # Linux dependencies for WRY
-    env.ParseConfig("pkg-config --cflags --libs gtk+-3.0")
-    env.ParseConfig("pkg-config --cflags --libs webkit2gtk-4.1")
+# Add platform-specific dependencies only for editor builds
+if env.get("target") == "editor":
+    if env["platform"] == "linuxbsd":
+        # Linux dependencies for WRY
+        #env.ParseConfig("pkg-config --cflags --libs gtk+-3.0")
+        #env.ParseConfig("pkg-config --cflags --libs webkit2gtk-4.1")
+        pass
 
-elif env["platform"] == "windows":
-    # Windows dependencies for WRY
-    env.Append(
-        LIBS=[
-            "user32",
-            "kernel32",
-            "gdi32",
-            "winspool",
-            "shell32",
-            "ole32",
-            "oleaut32",
-            "uuid",
-            "comdlg32",
-            "advapi32",
-            "comctl32",
-            "ws2_32",
-            "urlmon",
-            "wininet",
-            "shlwapi",
-            "version",
-            "dwmapi",
-        ]
-    )
+    elif env["platform"] == "windows":
+        pass
 
-elif env["platform"] in ["macos", "osx"]:
-    # macOS dependencies for WRY
-    env.Append(
-        LINKFLAGS=[
-            "-framework",
-            "Cocoa",
-            "-framework",
-            "WebKit",
-            "-framework",
-            "CoreServices",
-            "-framework",
-            "Security",
-        ]
-    )
+    elif env["platform"] in ["macos"]:
+        # macOS dependencies for WRY
+        env.Append(
+            LINKFLAGS=[
+                "-framework",
+                "Cocoa",
+                "-framework",
+                "WebKit",
+                "-framework",
+                "CoreServices",
+                "-framework",
+                "Security",
+            ]
+        )
 
 # Add source files
 env.add_source_files(env.modules_sources, "register_types.cpp")
