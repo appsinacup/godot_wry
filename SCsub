@@ -183,10 +183,14 @@ if env["platform"] == "linuxbsd":
     # Linux dependencies for WRY
     #env.ParseConfig("pkg-config --cflags --libs gtk+-3.0")
     #env.ParseConfig("pkg-config --cflags --libs webkit2gtk-4.1")
-    pass
+    # Add linker flags to handle duplicate symbols from Rust libraries
+    env.Append(LINKFLAGS=["-Wl,--allow-multiple-definition"])
+    print("Added Linux linker flags to allow multiple symbol definitions")
 
 elif env["platform"] == "windows":
-    pass
+    # Add linker flags to handle duplicate symbols from Rust libraries
+    env.Append(LINKFLAGS=["/FORCE:MULTIPLE"])
+    print("Added Windows linker flags to allow multiple symbol definitions")
 
 elif env["platform"] in ["macos"]:
     # macOS dependencies for WRY
