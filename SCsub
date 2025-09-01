@@ -201,7 +201,6 @@ if env["platform"] == "linuxbsd":
     
     env.ParseConfig("pkg-config --cflags --libs gtk+-3.0")
     env.ParseConfig("pkg-config --cflags --libs webkit2gtk-4.1")
-    env.Append(LIBS=["webkitgtk-4.1"])
     # Add linker flags to handle duplicate symbols from Rust libraries
     env.Append(LINKFLAGS=["-Wl,--allow-multiple-definition"])
     print("Added Linux linker flags to allow multiple symbol definitions")
