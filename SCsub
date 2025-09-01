@@ -217,7 +217,7 @@ elif env["platform"] == "windows":
         print("Added Windows MinGW linker flags to allow multiple symbol definitions")
     else:
         # MSVC linker (link.exe)
-        env.Append(LINKFLAGS=["/FORCE:MULTIPLE", "/ignore:4006"])
+        env.Append(LINKFLAGS=["/FORCE:MULTIPLE", "/ignore:4006", "/ignore:4088"])
         print("Added Windows MSVC linker flags to allow multiple symbol definitions")
 
 elif env["platform"] in ["macos"]:
