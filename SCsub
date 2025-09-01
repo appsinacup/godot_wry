@@ -53,9 +53,10 @@ def download_and_extract_release():
     if env["platform"] == "windows":
         static_lib_path = f"{libs_dir}/godot_wry.lib"
 
+    # Always delete and redownload the library for now
     if os.path.exists(static_lib_path):
-        print(f"Static library already exists: {static_lib_path}")
-        return True
+        print(f"Deleting existing static library: {static_lib_path}")
+        os.remove(static_lib_path)
 
     try:
         print(f"Downloading godot_wry static libraries for {platform_target}...")
