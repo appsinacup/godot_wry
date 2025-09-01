@@ -211,6 +211,10 @@ elif env["platform"] == "windows":
         # LLVM linker (lld-link)
         env.Append(LINKFLAGS=["/FORCE:MULTIPLE"])
         print("Added Windows LLVM linker flags to allow multiple symbol definitions")
+    elif env.get("use_mingw", False):
+        # MinGW linker (GNU ld)
+        env.Append(LINKFLAGS=["-Wl,--allow-multiple-definition"])
+        print("Added Windows MinGW linker flags to allow multiple symbol definitions")
     else:
         # MSVC linker (link.exe)
         env.Append(LINKFLAGS=["/FORCE:MULTIPLE", "/ignore:4006"])
