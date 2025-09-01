@@ -5,6 +5,8 @@ import os
 import urllib.request
 import zipfile
 import time
+import subprocess
+import json
 
 Import("env")
 Import("env_modules")
@@ -61,46 +63,38 @@ def download_and_extract_release():
     try:
         print(f"Downloading godot_wry static libraries for {platform_target}...")
 
-        # Get latest release info with authentication if available
-        request = urllib.request.Request(release_url)
-        
-        # Add GitHub token if available (for CI/CD) - try multiple possible names
-        github_token = (
-            os.environ.get('GITHUB_TOKEN') or 
-            os.environ.get('GH_TOKEN') or 
-            os.environ.get('GITHUB_ACCESS_TOKEN') or
-            os.environ.get('GH_ACCESS_TOKEN') or
-            os.environ.get('GODOT_WRY_GITHUB_TOKEN')  # Custom fallback
-        )
-        
-        # Debug: Check all environment variables related to GitHub
-        print(f"DEBUG: GITHUB_TOKEN present: {'Yes' if github_token else 'No'}")
-        print(f"DEBUG: GITHUB_ACTIONS: {os.environ.get('GITHUB_ACTIONS', 'Not set')}")
-        print(f"DEBUG: CI: {os.environ.get('CI', 'Not set')}")
-        print(f"DEBUG: Available env vars starting with GITHUB_: {[k for k in os.environ.keys() if k.startswith('GITHUB_')]}")
-        
-        if github_token:
-            request.add_header('Authorization', f'token {github_token}')
-            print("Using GitHub token for authentication")
-        else:
-            print("No GitHub token found - using unauthenticated requests (may hit rate limits)")
-        
-        # Retry logic for rate limiting
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                with urllib.request.urlopen(request) as response:
-                    import json
-                    release_data = json.loads(response.read().decode())
-                break  # Success, exit retry loop
-            except urllib.error.HTTPError as e:
-                if e.code == 403 and "rate limit" in str(e).lower() and attempt < max_retries - 1:
-                    wait_time = (attempt + 1) * 10  # Wait 10, 20, 30 seconds
-                    print(f"Rate limit hit, waiting {wait_time} seconds before retry {attempt + 2}/{max_retries}...")
-                    time.sleep(wait_time)
-                    continue
-                else:
-                    raise  # Re-raise if not rate limit or final attempt
+        # Try GitHub CLI first (automatically authenticated in GitHub Actions)
+        release_data = None
+        try:
+            print("Attempting to use GitHub CLI for authenticated API access...")
+            result = subprocess.run(
+                ['gh', 'api', f'/repos/{repo}/releases/latest'], 
+                capture_output=True, text=True, check=True, timeout=30
+            )
+            release_data = json.loads(result.stdout)
+            print("Successfully retrieved release data using GitHub CLI")
+        except (subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError, subprocess.TimeoutExpired) as gh_error:
+            print(f"GitHub CLI failed: {gh_error}")
+            print("Falling back to direct API access...")
+            
+            # Fallback to direct API access with token
+            request = urllib.request.Request(release_url)
+            
+            # Retry logic for rate limiting
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    with urllib.request.urlopen(request) as response:
+                        release_data = json.loads(response.read().decode())
+                    break  # Success, exit retry loop
+                except urllib.error.HTTPError as e:
+                    if e.code == 403 and "rate limit" in str(e).lower() and attempt < max_retries - 1:
+                        wait_time = (attempt + 1) * 10  # Wait 10, 20, 30 seconds
+                        print(f"Rate limit hit, waiting {wait_time} seconds before retry {attempt + 2}/{max_retries}...")
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        raise  # Re-raise if not rate limit or final attempt
 
         # Find the static libraries archive
         download_url = None
