@@ -181,8 +181,27 @@ elif env["platform"] in ["macos", "osx"]:
 
 if env["platform"] == "linuxbsd":
     # Linux dependencies for WRY
-    #env.ParseConfig("pkg-config --cflags --libs gtk+-3.0")
-    #env.ParseConfig("pkg-config --cflags --libs webkit2gtk-4.1")
+    # Check if WebKit2GTK is installed, if not, try to install it
+    import subprocess
+    try:
+        # Check if pkg-config can find webkit2gtk-4.1
+        subprocess.check_output(["pkg-config", "--exists", "webkit2gtk-4.1"], stderr=subprocess.STDOUT)
+        print("WebKit2GTK-4.1 found")
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print("WebKit2GTK-4.1 not found, attempting to install...")
+        try:
+            # Try to install the required packages
+            subprocess.run(["sudo", "apt", "update"], check=True)
+            subprocess.run(["sudo", "apt", "install", "-y", "libwebkit2gtk-4.1-dev"], check=True)
+            print("Successfully installed WebKit2GTK dependencies")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to install dependencies: {e}")
+            print("Please manually install: sudo apt install libwebkit2gtk-4.1-dev")
+            raise RuntimeError("Required Linux dependencies not available")
+    
+    env.ParseConfig("pkg-config --cflags --libs gtk+-3.0")
+    env.ParseConfig("pkg-config --cflags --libs webkit2gtk-4.1")
+    env.Append(LIBS=["webkitgtk-4.1"])
     # Add linker flags to handle duplicate symbols from Rust libraries
     env.Append(LINKFLAGS=["-Wl,--allow-multiple-definition"])
     print("Added Linux linker flags to allow multiple symbol definitions")
