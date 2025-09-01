@@ -207,8 +207,14 @@ if env["platform"] == "linuxbsd":
 
 elif env["platform"] == "windows":
     # Add linker flags to handle duplicate symbols from Rust libraries
-    env.Append(LINKFLAGS=["/FORCE:MULTIPLE"])
-    print("Added Windows linker flags to allow multiple symbol definitions")
+    if env.get("use_llvm", False):
+        # LLVM linker (lld-link)
+        env.Append(LINKFLAGS=["/FORCE:MULTIPLE"])
+        print("Added Windows LLVM linker flags to allow multiple symbol definitions")
+    else:
+        # MSVC linker (link.exe)
+        env.Append(LINKFLAGS=["/FORCE:MULTIPLE", "/ignore:4006"])
+        print("Added Windows MSVC linker flags to allow multiple symbol definitions")
 
 elif env["platform"] in ["macos"]:
     # macOS dependencies for WRY
