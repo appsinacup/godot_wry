@@ -155,7 +155,8 @@ def download_and_extract_release():
 
 # Download the static libraries
 try:
-    download_and_extract_release()
+    if env.get("target") == "editor":
+        download_and_extract_release()
 except RuntimeError as e:
     print(f"Error: {e}")
     print("You may need to manually place the static libraries in modules/godot_wry/libs/")
