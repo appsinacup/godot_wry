@@ -48,10 +48,14 @@ def download_and_extract_release():
     libs_dir = "libs"
     os.makedirs(libs_dir, exist_ok=True)
 
-    # Check if we already have the libraries
-    static_lib_path = f"{libs_dir}/libgodot_wry.a"
+    # Check if we already have the libraries - determine correct file based on toolchain
     if env["platform"] == "windows":
-        static_lib_path = f"{libs_dir}/godot_wry.lib"
+        if env.get("use_mingw", False):
+            static_lib_path = f"{libs_dir}/libgodot_wry.a"  # MinGW uses .a files
+        else:
+            static_lib_path = f"{libs_dir}/godot_wry.lib"   # MSVC/LLVM use .lib files
+    else:
+        static_lib_path = f"{libs_dir}/libgodot_wry.a"
 
     # Check if GitHub token is available for authenticated requests
     github_token = os.environ.get('GH_TOKEN')
@@ -107,12 +111,21 @@ def download_and_extract_release():
                 platform_match = False
                 if platform_target == "linux_x86_64" and "x86_64-unknown-linux-gnu" in file_path:
                     platform_match = True
-                elif platform_target == "windows_x86_64" and "x86_64-pc-windows-msvc" in file_path:
-                    platform_match = True
-                elif platform_target == "windows_x86_32" and "i686-pc-windows-msvc" in file_path:
-                    platform_match = True
-                elif platform_target == "windows_arm64" and "aarch64-pc-windows-msvc" in file_path:
-                    platform_match = True
+                elif platform_target == "windows_x86_64":
+                    if env.get("use_mingw", False) and "x86_64-pc-windows-gnu" in file_path:
+                        platform_match = True
+                    elif not env.get("use_mingw", False) and "x86_64-pc-windows-msvc" in file_path:
+                        platform_match = True
+                elif platform_target == "windows_x86_32":
+                    if env.get("use_mingw", False) and "i686-pc-windows-gnu" in file_path:
+                        platform_match = True
+                    elif not env.get("use_mingw", False) and "i686-pc-windows-msvc" in file_path:
+                        platform_match = True
+                elif platform_target == "windows_arm64":
+                    if env.get("use_mingw", False) and "aarch64-pc-windows-gnu" in file_path:
+                        platform_match = True
+                    elif not env.get("use_mingw", False) and "aarch64-pc-windows-msvc" in file_path:
+                        platform_match = True
                 elif platform_target == "macos_x86_64" and "x86_64-apple-darwin" in file_path:
                     platform_match = True
                 elif platform_target == "macos_arm64" and "aarch64-apple-darwin" in file_path:
@@ -172,7 +185,12 @@ if env["platform"] == "linuxbsd":
         print(f"Warning: Static library not found: {static_lib}")
 
 elif env["platform"] == "windows":
-    static_lib = f"{libs_dir}/godot_wry.lib"
+    # Use different library formats based on toolchain
+    if env.get("use_mingw", False):
+        static_lib = f"{libs_dir}/libgodot_wry.a"  # MinGW uses .a files
+    else:
+        static_lib = f"{libs_dir}/godot_wry.lib"   # MSVC/LLVM use .lib files
+    
     if os.path.exists(static_lib):
         env.Append(LIBS=[env.File(f"{static_lib}")])
         print(f"Added static library: {static_lib}")
@@ -214,25 +232,6 @@ if env["platform"] == "linuxbsd":
     print("Added Linux linker flags to allow multiple symbol definitions")
 
 elif env["platform"] == "windows":
-    # Add Windows system libraries required for WebView2 functionality
-    webview2_libs = [
-        "Advapi32",     # Registry functions (RegGetString, etc.)
-        "Ole32",        # COM functionality
-        "OleAut32",     # OLE Automation
-        "User32",       # Windows user interface
-        "Shell32",      # Shell functions
-        "Shlwapi",      # Shell light-weight utility functions
-        "Version",      # Version information functions
-        "Wininet",      # Internet functions
-        "Urlmon",       # URL moniker functions
-        "Comctl32",     # Common controls
-    ]
-    
-    if env.get("use_mingw", False):
-        # For MinGW, use lowercase library names
-        env.Append(LIBS=[lib.lower() for lib in webview2_libs])
-        print("Added Windows system libraries for MinGW build")
-    
     # Add linker flags to handle duplicate symbols from Rust libraries
     # First, remove any existing /WX flag that might be causing warnings to be treated as errors
     if "/WX" in env.get("LINKFLAGS", []):
@@ -247,6 +246,22 @@ elif env["platform"] == "windows":
         # MinGW linker (GNU ld)
         env.Append(LINKFLAGS=["-Wl,--allow-multiple-definition"])
         print("Added Windows MinGW linker flags to allow multiple symbol definitions")
+        
+        # Add Windows system libraries required for WebView2 functionality (MinGW only)
+        webview2_libs = [
+            "advapi32",     # Registry functions (RegGetString, etc.)
+            "ole32",        # COM functionality
+            "oleaut32",     # OLE Automation
+            "user32",       # Windows user interface
+            "shell32",      # Shell functions
+            "shlwapi",      # Shell light-weight utility functions
+            "version",      # Version information functions
+            "wininet",      # Internet functions
+            "urlmon",       # URL moniker functions
+            "comctl32",     # Common controls
+        ]
+        env.Append(LIBS=webview2_libs)
+        print("Added Windows system libraries for MinGW build")
     else:
         # MSVC linker (link.exe)
         env.Append(LINKFLAGS=["/FORCE:MULTIPLE", "/ignore:4006", "/ignore:4088", "/WX-"])
