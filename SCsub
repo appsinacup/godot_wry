@@ -214,6 +214,25 @@ if env["platform"] == "linuxbsd":
     print("Added Linux linker flags to allow multiple symbol definitions")
 
 elif env["platform"] == "windows":
+    # Add Windows system libraries required for WebView2 functionality
+    webview2_libs = [
+        "Advapi32",     # Registry functions (RegGetString, etc.)
+        "Ole32",        # COM functionality
+        "OleAut32",     # OLE Automation
+        "User32",       # Windows user interface
+        "Shell32",      # Shell functions
+        "Shlwapi",      # Shell light-weight utility functions
+        "Version",      # Version information functions
+        "Wininet",      # Internet functions
+        "Urlmon",       # URL moniker functions
+        "Comctl32",     # Common controls
+    ]
+    
+    if env.get("use_mingw", False):
+        # For MinGW, use lowercase library names
+        env.Append(LIBS=[lib.lower() for lib in webview2_libs])
+        print("Added Windows system libraries for MinGW build")
+    
     # Add linker flags to handle duplicate symbols from Rust libraries
     # First, remove any existing /WX flag that might be causing warnings to be treated as errors
     if "/WX" in env.get("LINKFLAGS", []):
@@ -223,7 +242,7 @@ elif env["platform"] == "windows":
     if env.get("use_llvm", False):
         # LLVM linker (lld-link) - uses different syntax than MSVC linker
         env.Append(LINKFLAGS=["/FORCE:MULTIPLE"])
-        print("Added Windows LLVM linker flags to allow multiple symbol definitions and disable warnings as errors")
+        print("Added Windows LLVM linker flags to allow multiple symbol definitions")
     elif env.get("use_mingw", False):
         # MinGW linker (GNU ld)
         env.Append(LINKFLAGS=["-Wl,--allow-multiple-definition"])
