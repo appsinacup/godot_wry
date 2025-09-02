@@ -1,12 +1,6 @@
 on:
   push:
-    branches: main
-    paths-ignore:
-      - "docs/**"
-      - "**.md"
   pull_request:
-    types: [opened, synchronize, reopened]
-    branches: main
 
 name: 🤖 GDExtension
 
@@ -89,5 +83,19 @@ jobs:
         with:
           name: godot_wry
           path: package
-
-  #TODO: release:
+      
+      - name: Archive artifacts
+        run: |
+          mkdir -p final_release
+          zip -r final_release/godot_wry.zip package/godot_wry
+          echo "Created final archive with structure:"
+          unzip -l final_release/godot_wry.zip
+      - name: Create GitHub Release Draft
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Godot Wry Build
+          draft: true
+          files: |
+            final_release/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
