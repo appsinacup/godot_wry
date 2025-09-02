@@ -9,7 +9,7 @@ use godot::global::{Key, MouseButton};
 use lazy_static::lazy_static;
 use serde_json;
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Mutex};
 use wry::{WebViewBuilder, Rect, WebViewAttributes};
 use wry::dpi::{PhysicalPosition, PhysicalSize};
 use wry::http::Request;
@@ -110,6 +110,12 @@ impl IControl for WebView {
 impl WebView {
     #[signal]
     fn ipc_message(message: GString);
+    
+    #[signal]
+    fn navigation_requested(url: GString);
+    
+    #[signal]
+    fn document_title_changed(title: GString);
 
     #[func]
     fn update_webview(&mut self) {
@@ -159,8 +165,10 @@ impl WebView {
             };
         }
 
-        let base = self.base().clone();
-        let webview_builder = WebViewBuilder::with_attributes(WebViewAttributes {
+        let base_doc = self.base().clone();
+        let base_nav = self.base().clone();
+        let base_ipc = self.base().clone();
+        let webview_builder = WebViewBuilder::new_with_attributes(WebViewAttributes {
             url: if self.html.is_empty() { Some(String::from(&self.url)) } else { None },
             html: if self.url.is_empty() { Some(String::from(&self.html)) } else { None },
             transparent: self.transparent,
@@ -175,119 +183,127 @@ impl WebView {
             accept_first_mouse: true,
             ..Default::default()
         })
-            .with_ipc_handler(move |req: Request<String>| {
-                let body = req.body().as_str();
-                
-                if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(body) {
-                    if let Some(event_type) = json_value.get("type").and_then(|t| t.as_str()) {
-                        match event_type {
-                            "_mouse_move" => {
-                                let x = json_value.get("x").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
-                                let y = json_value.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
-                                
-                                let movement_x = json_value.get("movementX").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
-                                let movement_y = json_value.get("movementY").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
-                                
-                                let mut event = InputEventMouseMotion::new_gd();
-                                event.set_position(Vector2::new(x, y));
-                                event.set_global_position(Vector2::new(x, y));
-                                
-                                let button_mask = CURRENT_BUTTON_MASK.lock().unwrap();
-                                event.set_button_mask(*button_mask);
+        .with_drag_drop_handler(|_handler| {
+            true
+        })
+        .with_new_window_req_handler(|url, features| {
+            println!("new window req: {url} {features:?}");
+                wry::NewWindowResponse::Allow
+        })
+        .with_document_title_changed_handler(move |title| {
+            base_doc.clone().emit_signal("document_title_changed", &[title.to_variant()]);
+        })
+        .with_navigation_handler(move |url: String| {
+            base_nav.clone().emit_signal("navigation_requested", &[url.to_variant()]);
+            true
+        })
+        .with_ipc_handler(move |req: Request<String>| {
+            let body = req.body().as_str();
 
-                                event.set_relative(Vector2::new(movement_x, movement_y));
-                                
-                                Input::singleton().parse_input_event(&event);
-                                return;
-                            },
-                            
-                            "_mouse_down" | "_mouse_up" => {
-                                let x = json_value.get("x").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
-                                let y = json_value.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
-                                let button = json_value.get("button").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
-                                
-                                let godot_button = match button {
-                                    0 => MouseButton::LEFT,
-                                    1 => MouseButton::MIDDLE,
-                                    2 => MouseButton::RIGHT,
-                                    3 => MouseButton::WHEEL_UP,
-                                    4 => MouseButton::WHEEL_DOWN,
-                                    _ => MouseButton::LEFT, // default to left button
-                                };
-                                
-                                let pressed = event_type == "_mouse_down";
-                                let mask = match godot_button {
-                                    MouseButton::LEFT => MouseButtonMask::LEFT,
-                                    MouseButton::RIGHT => MouseButtonMask::RIGHT,
-                                    MouseButton::MIDDLE => MouseButtonMask::MIDDLE,
-                                    _ => MouseButtonMask::default(),
-                                };
-                                
-                                if godot_button != MouseButton::WHEEL_UP && godot_button != MouseButton::WHEEL_DOWN {
-                                    let mut button_mask = CURRENT_BUTTON_MASK.lock().unwrap();
-                                    if pressed {
-                                        *button_mask = *button_mask | mask;
-                                    } else {
-                                        match godot_button {
-                                            MouseButton::LEFT => {
-                                                if button_mask.is_set(MouseButtonMask::LEFT) {
-                                                    *button_mask = MouseButtonMask::from_ord(button_mask.ord() & !MouseButtonMask::LEFT.ord());
-                                                }
-                                            },
-                                            MouseButton::RIGHT => {
-                                                if button_mask.is_set(MouseButtonMask::RIGHT) {
-                                                    *button_mask = MouseButtonMask::from_ord(button_mask.ord() & !MouseButtonMask::RIGHT.ord());
-                                                }
-                                            },
-                                            MouseButton::MIDDLE => {
-                                                if button_mask.is_set(MouseButtonMask::MIDDLE) {
-                                                    *button_mask = MouseButtonMask::from_ord(button_mask.ord() & !MouseButtonMask::MIDDLE.ord());
-                                                }
-                                            },
-                                            _ => {}
+            base_ipc.clone().emit_signal("ipc_message", &[body.to_variant()]);
+
+            if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(body) {
+                if let Some(event_type) = json_value.get("type").and_then(|t| t.as_str()) {
+                    match event_type {
+                        "_mouse_move" => {
+                            let x = json_value.get("x").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+                            let y = json_value.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+
+                            let movement_x = json_value.get("movementX").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+                            let movement_y = json_value.get("movementY").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+
+                            let mut event = InputEventMouseMotion::new_gd();
+                            event.set_position(Vector2::new(x, y));
+                            event.set_global_position(Vector2::new(x, y));
+
+                            let button_mask = CURRENT_BUTTON_MASK.lock().unwrap();
+                            event.set_button_mask(*button_mask);
+
+                            event.set_relative(Vector2::new(movement_x, movement_y));
+
+                            Input::singleton().parse_input_event(&event);
+                            return;
+                        },
+
+                        "_mouse_down" | "_mouse_up" => {
+                            let x = json_value.get("x").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+                            let y = json_value.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+                            let button = json_value.get("button").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+
+                            let godot_button = match button {
+                                0 => MouseButton::LEFT,
+                                1 => MouseButton::MIDDLE,
+                                2 => MouseButton::RIGHT,
+                                3 => MouseButton::WHEEL_UP,
+                                4 => MouseButton::WHEEL_DOWN,
+                                _ => MouseButton::LEFT, // default to left button
+                            };
+
+                            let pressed = event_type == "_mouse_down";
+
+                            if godot_button != MouseButton::WHEEL_UP && godot_button != MouseButton::WHEEL_DOWN {
+                                let mut button_mask = CURRENT_BUTTON_MASK.lock().unwrap();
+                                match godot_button {
+                                    MouseButton::LEFT => {
+                                        if pressed {
+                                            *button_mask = MouseButtonMask::from_ord(button_mask.ord() | MouseButtonMask::LEFT.ord());
+                                        } else {
+                                            *button_mask = MouseButtonMask::from_ord(button_mask.ord() & !MouseButtonMask::LEFT.ord());
                                         }
-                                    }
+                                    },
+                                    MouseButton::RIGHT => {
+                                        if pressed {
+                                            *button_mask = MouseButtonMask::from_ord(button_mask.ord() | MouseButtonMask::RIGHT.ord());
+                                        } else {
+                                            *button_mask = MouseButtonMask::from_ord(button_mask.ord() & !MouseButtonMask::RIGHT.ord());
+                                        }
+                                    },
+                                    MouseButton::MIDDLE => {
+                                        if pressed {
+                                            *button_mask = MouseButtonMask::from_ord(button_mask.ord() | MouseButtonMask::MIDDLE.ord());
+                                        } else {
+                                            *button_mask = MouseButtonMask::from_ord(button_mask.ord() & !MouseButtonMask::MIDDLE.ord());
+                                        }
+                                    },
+                                    _ => {}
                                 }
-                                
-                                let mut event = InputEventMouseButton::new_gd();
-                                event.set_button_index(godot_button);
-                                event.set_position(Vector2::new(x, y));
-                                event.set_global_position(Vector2::new(x, y));
-                                event.set_pressed(pressed);
-                                
-                                let button_mask = CURRENT_BUTTON_MASK.lock().unwrap();
-                                event.set_button_mask(*button_mask);
-                                
-                                Input::singleton().parse_input_event(&event);
-                                return;
-                            },
-                            
-                            "_key_down" | "_key_up" => {
-                                let key_str = json_value.get("key").and_then(|v| v.as_str()).unwrap_or("");
-                                // let key_code = json_value.get("keyCode").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
-                                
-                                let mut event = InputEventKey::new_gd();
-                                
-                                let godot_key = GODOT_KEYS.get(key_str).copied().unwrap_or(Key::NONE);
-                                
-                                event.set_keycode(godot_key);
-                                event.set_pressed(event_type == "_key_down");
-                                
-                                Input::singleton().parse_input_event(&event);
-                                return;
-                            },
-                            
-                            _ => {}
-                        }
+                            }
+
+                            let mut event = InputEventMouseButton::new_gd();
+                            event.set_button_index(godot_button);
+                            event.set_position(Vector2::new(x, y));
+                            event.set_global_position(Vector2::new(x, y));
+                            event.set_pressed(pressed);
+
+                            let button_mask = CURRENT_BUTTON_MASK.lock().unwrap();
+                            event.set_button_mask(*button_mask);
+
+                            Input::singleton().parse_input_event(&event);
+                            return;
+                        },
+
+                        "_key_down" | "_key_up" => {
+                            let key_str = json_value.get("key").and_then(|v| v.as_str()).unwrap_or("");
+
+                            let mut event = InputEventKey::new_gd();
+
+                            let godot_key = GODOT_KEYS.get(key_str).copied().unwrap_or(Key::NONE);
+
+                            event.set_keycode(godot_key);
+                            event.set_pressed(event_type == "_key_down");
+
+                            Input::singleton().parse_input_event(&event);
+                            return;
+                        },
+
+                        _ => {}
                     }
                 }
-                
-                // if we get here, this is a regular IPC message
-                base.clone().emit_signal("ipc_message", &[body.to_variant()]);
-            })
-            .with_custom_protocol(
-                "res".into(), move |_webview_id, request| get_res_response(request),
-            );
+            }
+        })
+        .with_custom_protocol(
+            "res".into(), move |_webview_id, request| get_res_response(request),
+        );
 
         if !self.url.is_empty() && !self.html.is_empty() {
             godot_error!("[Godot WRY] You have entered both a URL and HTML code. You may only enter one at a time.")
@@ -398,11 +414,24 @@ impl WebView {
                     size: PhysicalSize::new(viewport_size.x, viewport_size.y).into(),
                 }
             } else {
-                let pos = self.base().get_screen_position();
                 let size = self.base().get_size();
+                
+                let adjusted_pos = {
+                    // Get the window's content area offset (title bar height, etc.)
+                    let window = self.base().get_viewport().expect("Could not get viewport").get_window().expect("Could not get window");
+                    let window_pos = window.get_position();
+                    let screen_pos = self.base().get_screen_position();
+                    
+                    // Calculate the offset from window content area
+                    Vector2::new(
+                        screen_pos.x - window_pos.x as f32,
+                        screen_pos.y - window_pos.y as f32
+                    )
+                };
+                
                 Rect {
-                    position: PhysicalPosition::new(pos.x, pos.y).into(),
-                    size: PhysicalSize::new(size.x, size.y).into(),
+                    position: PhysicalPosition::new(adjusted_pos.x as i32, adjusted_pos.y as i32).into(),
+                    size: PhysicalSize::new(size.x as u32, size.y as u32).into(),
                 }
             };
             let _ = webview.set_bounds(rect);
