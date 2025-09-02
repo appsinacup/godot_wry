@@ -221,8 +221,8 @@ elif env["platform"] == "windows":
         print("Removed /WX flag from LINKFLAGS to prevent warnings as errors")
     
     if env.get("use_llvm", False):
-        # LLVM linker (lld-link)
-        env.Append(LINKFLAGS=["/FORCE:MULTIPLE", "/WX-"])
+        # LLVM linker (lld-link) - uses different syntax than MSVC linker
+        env.Append(LINKFLAGS=["/FORCE:MULTIPLE"])
         print("Added Windows LLVM linker flags to allow multiple symbol definitions and disable warnings as errors")
     elif env.get("use_mingw", False):
         # MinGW linker (GNU ld)
