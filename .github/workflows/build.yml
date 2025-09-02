@@ -86,9 +86,6 @@ jobs:
           - target: x86_64-pc-windows-gnu
             arch: x64
             name: x86_64
-          - target: i686-pc-windows-gnu
-            arch: x32
-            name: x86_32
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -100,12 +97,7 @@ jobs:
 
       - name: Install MinGW-w64
         run: |
-          # Use MSYS2 to install MinGW-w64 with both 32-bit and 64-bit support
-          choco install msys2 --params="/NoPath"
-          C:\tools\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm mingw-w64-x86_64-gcc mingw-w64-i686-gcc"
-          # Add both toolchains to PATH
-          echo "C:\tools\msys64\mingw64\bin" >> $GITHUB_PATH
-          echo "C:\tools\msys64\mingw32\bin" >> $GITHUB_PATH
+          choco install mingw
 
       - name: Install Just
         uses: extractions/setup-just@v1
@@ -264,9 +256,6 @@ jobs:
           # Windows MinGW archives
           zip -r ../../../final_release/godot_wry_windows_mingw_x86_64.zip x86_64-pc-windows-gnu
           echo "Created Windows MinGW x86_64 archive"
-          
-          zip -r ../../../final_release/godot_wry_windows_mingw_x86_32.zip i686-pc-windows-gnu
-          echo "Created Windows MinGW x86_32 archive"
           
           # macOS archives
           zip -r ../../../final_release/godot_wry_macos_x86_64.zip x86_64-apple-darwin

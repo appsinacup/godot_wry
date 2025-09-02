@@ -117,9 +117,8 @@ def download_and_extract_release():
                     elif not env.get("use_mingw", False) and "x86_64-pc-windows-msvc" in file_path:
                         platform_match = True
                 elif platform_target == "windows_x86_32":
-                    if env.get("use_mingw", False) and "i686-pc-windows-gnu" in file_path:
-                        platform_match = True
-                    elif not env.get("use_mingw", False) and "i686-pc-windows-msvc" in file_path:
+                    # MinGW x32 not supported - only MSVC
+                    if "i686-pc-windows-msvc" in file_path:
                         platform_match = True
                 elif platform_target == "windows_arm64":
                     # MinGW ARM64 not supported - only MSVC
