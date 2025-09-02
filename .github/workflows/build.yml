@@ -98,9 +98,14 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install MinGW
+      - name: Install MinGW-w64
         run: |
-          choco install mingw
+          # Use MSYS2 to install MinGW-w64 with both 32-bit and 64-bit support
+          choco install msys2 --params="/NoPath"
+          C:\tools\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm mingw-w64-x86_64-gcc mingw-w64-i686-gcc"
+          # Add both toolchains to PATH
+          echo "C:\tools\msys64\mingw64\bin" >> $GITHUB_PATH
+          echo "C:\tools\msys64\mingw32\bin" >> $GITHUB_PATH
 
       - name: Install Just
         uses: extractions/setup-just@v1
