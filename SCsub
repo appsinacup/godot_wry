@@ -53,8 +53,17 @@ def download_and_extract_release():
     if env["platform"] == "windows":
         static_lib_path = f"{libs_dir}/godot_wry.lib"
 
-    # Always delete and redownload the library for now
-    if os.path.exists(static_lib_path):
+    # Check if GitHub token is available for authenticated requests
+    github_token = os.environ.get('GH_TOKEN')
+    
+    # If library exists and no GH_TOKEN, skip download
+    if os.path.exists(static_lib_path) and not github_token:
+        print(f"Static library already exists: {static_lib_path}")
+        print("Skipping download (no GH_TOKEN available)")
+        return
+    
+    # If GH_TOKEN is set, always delete and redownload for latest version
+    if os.path.exists(static_lib_path) and github_token:
         print(f"Deleting existing static library: {static_lib_path}")
         os.remove(static_lib_path)
 
@@ -65,7 +74,6 @@ def download_and_extract_release():
         request = urllib.request.Request(release_url)
         
         # Add GitHub token if available
-        github_token = os.environ.get('GH_TOKEN')
         if github_token:
             request.add_header('Authorization', f'token {github_token}')
             print("Using GitHub token for authentication")
