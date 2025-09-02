@@ -89,9 +89,6 @@ jobs:
           - target: i686-pc-windows-gnu
             arch: x32
             name: x86_32
-          - target: aarch64-pc-windows-gnu
-            arch: arm64
-            name: arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -265,9 +262,6 @@ jobs:
           
           zip -r ../../../final_release/godot_wry_windows_mingw_x86_32.zip i686-pc-windows-gnu
           echo "Created Windows MinGW x86_32 archive"
-          
-          zip -r ../../../final_release/godot_wry_windows_mingw_arm64.zip aarch64-pc-windows-gnu
-          echo "Created Windows MinGW ARM64 archive"
           
           # macOS archives
           zip -r ../../../final_release/godot_wry_macos_x86_64.zip x86_64-apple-darwin

@@ -21,10 +21,10 @@ clean:
 	cargo clean
 
 # Desktop platforms only (Linux x86_64, Windows, macOS)
-build-all-platforms: build-linux-x64 build-windows-x64 build-windows-x32 build-windows-arm64 build-windows-mingw-x64 build-windows-mingw-x32 build-windows-mingw-arm64 build-macos-x64 build-macos-arm64 build-macos-universal
+build-all-platforms: build-linux-x64 build-windows-x64 build-windows-x32 build-windows-arm64 build-windows-mingw-x64 build-windows-mingw-x32 build-macos-x64 build-macos-arm64 build-macos-universal
 
 # Static libraries for desktop platforms
-build-all-static: build-static-linux-x64 build-static-windows-x64 build-static-windows-x32 build-static-windows-arm64 build-static-windows-mingw-x64 build-static-windows-mingw-x32 build-static-windows-mingw-arm64 build-static-macos-x64 build-static-macos-arm64
+build-all-static: build-static-linux-x64 build-static-windows-x64 build-static-windows-x32 build-static-windows-arm64 build-static-windows-mingw-x64 build-static-windows-mingw-x32 build-static-macos-x64 build-static-macos-arm64
 
 _build-macos:
 	cargo build --target {{target}} --locked --release
@@ -108,12 +108,6 @@ build-windows-mingw-x32:
 	mkdir -p ../godot/addons/godot_wry/bin/i686-pc-windows-gnu
 	cp ./target/i686-pc-windows-gnu/release/godot_wry.dll ../godot/addons/godot_wry/bin/i686-pc-windows-gnu/
 
-build-windows-mingw-arm64:
-	@echo "Building for Windows MinGW ARM64..."
-	cargo build --target aarch64-pc-windows-gnu --locked --release
-	mkdir -p ../godot/addons/godot_wry/bin/aarch64-pc-windows-gnu
-	cp ./target/aarch64-pc-windows-gnu/release/godot_wry.dll ../godot/addons/godot_wry/bin/aarch64-pc-windows-gnu/
-
 build-macos-x64:
 	@echo "Building for macOS x86_64..."
 	cargo build --target x86_64-apple-darwin --locked --release
@@ -186,15 +180,6 @@ build-static-windows-mingw-x32:
 	# For local Godot module build/testing (SCons expects in libs/)
 	mkdir -p ../libs
 	cp ./target/i686-pc-windows-gnu/release/libgodot_wry.a ../libs/libgodot_wry.a
-
-build-static-windows-mingw-arm64:
-	@echo "Building static library for Windows MinGW ARM64..."
-	cargo build --target aarch64-pc-windows-gnu --locked --release
-	mkdir -p ../godot/addons/godot_wry/bin/static/aarch64-pc-windows-gnu
-	cp ./target/aarch64-pc-windows-gnu/release/libgodot_wry.a ../godot/addons/godot_wry/bin/static/aarch64-pc-windows-gnu/
-	# For local Godot module build/testing (SCons expects in libs/)
-	mkdir -p ../libs
-	cp ./target/aarch64-pc-windows-gnu/release/libgodot_wry.a ../libs/libgodot_wry.a
 
 build-static-macos-x64:
 	@echo "Building static library for macOS x86_64..."
