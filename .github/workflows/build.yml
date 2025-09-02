@@ -148,7 +148,7 @@ jobs:
         run: just build-macos-universal
 
       - name: Code sign and notarize universal library
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && env.APPLE_CERT_BASE64 != ''
         env:
           APPLE_CERT_BASE64: ${{ secrets.APPLE_CERT_BASE64 }}
           APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
