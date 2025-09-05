@@ -9,6 +9,14 @@ import json
 Import("env")
 Import("env_modules")
 
+# Check for unsupported platform/architecture combinations
+if env["platform"] == "linuxbsd" and env["arch"] == "x86_32":
+    print("Warning: godot_wry module is not supported on Linux x86_32 due to lack of 32-bit WebKit libraries.")
+    print("Skipping godot_wry module build.")
+    # Exit early without building anything
+    Return()
+
+# Continue with normal build process for supported platforms
 
 # region GitHub Release Downloader
 def get_platform_target():
