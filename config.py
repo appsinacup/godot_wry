@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
 def can_build(env, platform):
+    # Only build for editor targets
+    if env["target"] != "editor":
+        print(f"godot_wry: Disabled for non-editor builds (target={env['target']})")
+        return False
     if platform == "windows" and env.get("use_mingw", False):
         print("godot_wry: Disabled for Windows MinGW builds")
         return False

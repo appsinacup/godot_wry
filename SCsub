@@ -9,6 +9,11 @@ import json
 Import("env")
 Import("env_modules")
 
+# Only build godot_wry for editor builds
+if env["target"] != "editor":
+    print("godot_wry module: Skipping non-editor build (target=" + env["target"] + ")")
+    Return()
+
 # Check for unsupported platform/architecture combinations
 if env["platform"] == "linuxbsd" and env["arch"] == "x86_32":
     print("Warning: godot_wry module is not supported on Linux x86_32 due to lack of 32-bit WebKit libraries.")
