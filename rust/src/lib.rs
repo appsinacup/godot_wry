@@ -183,6 +183,7 @@ impl WebView {
             accept_first_mouse: true,
             ..Default::default()
         })
+        .with_clipboard(true)
         .with_drag_drop_handler(|_handler| {
             true
         })
