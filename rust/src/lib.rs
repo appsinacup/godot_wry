@@ -1,3 +1,7 @@
+#[cfg(target_os = "macos")]
+#[macro_use]
+extern crate objc;
+
 mod godot_window;
 mod protocols;
 
@@ -17,6 +21,9 @@ use wry::http::Request;
 use crate::godot_window::GodotWindow;
 use crate::protocols::get_res_response;
 
+#[cfg(target_os = "macos")]
+use std::sync::Once;
+
 #[cfg(target_os = "windows")]
 use {
     raw_window_handle::{HasWindowHandle, RawWindowHandle},
@@ -34,6 +41,9 @@ struct GodotWRY;
 
 #[gdextension]
 unsafe impl ExtensionLibrary for GodotWRY {}
+
+#[cfg(target_os = "macos")]
+static INIT_MACOS_EDIT_MENU: Once = Once::new();
 
 #[derive(GodotClass)]
 #[class(base=Control)]
@@ -144,6 +154,9 @@ impl WebView {
             return;
         }
 
+        #[cfg(target_os = "macos")]
+        ensure_macos_edit_menu();
+
         let window = GodotWindow;
 
         // remove WS_CLIPCHILDREN from the window style
@@ -183,7 +196,6 @@ impl WebView {
             accept_first_mouse: true,
             ..Default::default()
         })
-        .with_clipboard(true)
         .with_drag_drop_handler(|_handler| {
             true
         })
@@ -532,6 +544,73 @@ impl WebView {
             let _ = webview.reload();
         }
     }
+}
+
+#[cfg(target_os = "macos")]
+fn ensure_macos_edit_menu() {
+    use cocoa::appkit::{NSApp, NSApplication, NSEventModifierFlags, NSMenu, NSMenuItem};
+    use cocoa::base::{id, nil};
+    use cocoa::foundation::NSString;
+    use objc::runtime::Sel;
+    use std::ptr;
+
+    INIT_MACOS_EDIT_MENU.call_once(|| unsafe {
+        let app = NSApp();
+        if app == nil {
+            return;
+        }
+
+        let main_menu = app.mainMenu();
+        if main_menu == nil {
+            return;
+        }
+
+        let edit_lookup = NSString::alloc(nil).init_str("Edit");
+        let existing: id = objc::msg_send![main_menu, itemWithTitle: edit_lookup];
+        if existing != nil {
+            return;
+        }
+
+        let edit_title = NSString::alloc(nil).init_str("Edit");
+        let edit_item = NSMenuItem::alloc(nil)
+            .initWithTitle_action_keyEquivalent_(
+                edit_title,
+                Sel::from_ptr(ptr::null()),
+                NSString::alloc(nil).init_str(""),
+            );
+        edit_item.setSubmenu_(NSMenu::alloc(nil).initWithTitle_(NSString::alloc(nil).init_str("Edit")));
+        main_menu.addItem_(edit_item);
+
+        let edit_menu: id = objc::msg_send![edit_item, submenu];
+        if edit_menu == nil {
+            return;
+        }
+
+        add_standard_edit_item(edit_menu, "Undo", objc::sel!(undo:), "z", NSEventModifierFlags::NSCommandKeyMask);
+        add_standard_edit_item(edit_menu, "Redo", objc::sel!(redo:), "Z", NSEventModifierFlags::NSCommandKeyMask | NSEventModifierFlags::NSShiftKeyMask);
+        edit_menu.addItem_(NSMenuItem::separatorItem(nil));
+        add_standard_edit_item(edit_menu, "Cut", objc::sel!(cut:), "x", NSEventModifierFlags::NSCommandKeyMask);
+        add_standard_edit_item(edit_menu, "Copy", objc::sel!(copy:), "c", NSEventModifierFlags::NSCommandKeyMask);
+        add_standard_edit_item(edit_menu, "Paste", objc::sel!(paste:), "v", NSEventModifierFlags::NSCommandKeyMask);
+        add_standard_edit_item(edit_menu, "Select All", objc::sel!(selectAll:), "a", NSEventModifierFlags::NSCommandKeyMask);
+    });
+}
+
+#[cfg(target_os = "macos")]
+unsafe fn add_standard_edit_item(menu: cocoa::base::id, title: &str, selector: objc::runtime::Sel, key: &str, modifiers: cocoa::appkit::NSEventModifierFlags) {
+    use cocoa::appkit::{NSMenu, NSMenuItem};
+    use cocoa::base::nil;
+    use cocoa::foundation::NSString;
+
+    let item = NSMenuItem::alloc(nil)
+        .initWithTitle_action_keyEquivalent_(
+            NSString::alloc(nil).init_str(title),
+            selector,
+            NSString::alloc(nil).init_str(key),
+        );
+    item.setTarget_(nil);
+    item.setKeyEquivalentModifierMask_(modifiers);
+    menu.addItem_(item);
 }
 
 lazy_static! {
