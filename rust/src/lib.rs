@@ -744,7 +744,7 @@ fn ensure_macos_edit_menu() {
         add_standard_edit_item(edit_menu, "Cut", objc::sel!(cut:), "x", NSEventModifierFlags::NSCommandKeyMask);
         add_standard_edit_item(edit_menu, "Copy", objc::sel!(copy:), "c", NSEventModifierFlags::NSCommandKeyMask);
         add_standard_edit_item(edit_menu, "Paste", objc::sel!(paste:), "v", NSEventModifierFlags::NSCommandKeyMask);
-        add_standard_edit_item(edit_menu, "Select All", objc::sel!(selectAll:), "a", NSEventModifierFlags::NSCommandKeyMask);
+        //add_standard_edit_item(edit_menu, "Select All", objc::sel!(selectAll:), "a", NSEventModifierFlags::NSCommandKeyMask);
     });
 }
 
