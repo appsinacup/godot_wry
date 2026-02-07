@@ -41,7 +41,7 @@ jobs:
         run: just ${{ matrix.platform.target == 'universal-apple-darwin' && 'build-macos-universal' || 'build' }}
 
       - name: Code sign and notarize library
-        if: ${{ matrix.platform.runs-on == 'macos-latest' && github.ref == 'refs/heads/main' }}
+        if: ${{ matrix.platform.runs-on == 'macos-latest' }}
         env:
           APPLE_CERT_BASE64: ${{ secrets.APPLE_CERT_BASE64 }}
           APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
