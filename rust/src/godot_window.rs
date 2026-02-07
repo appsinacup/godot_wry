@@ -1,7 +1,7 @@
 use godot::classes::display_server::HandleType;
 use godot::classes::DisplayServer;
 use raw_window_handle::{HandleError, HasWindowHandle, RawWindowHandle, WindowHandle};
-
+use godot::obj::Singleton;
 #[cfg(target_os = "windows")]
 use {
     std::num::{NonZero, NonZeroIsize},
