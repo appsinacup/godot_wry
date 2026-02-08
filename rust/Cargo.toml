@@ -9,7 +9,7 @@ crate-type = ["cdylib"]
 [dependencies]
 godot = { git = "https://github.com/godot-rust/gdext", branch = "master", features = ["api-4-2"] }
 raw-window-handle = "0.6.2"
-wry = { version = "0.54.1", features = ["transparent", "devtools", "drag-drop", "os-webview", "x11"] }
+# wry = { version = "0.54.1", features = ["transparent", "devtools", "drag-drop", "os-webview", "x11"] }
 # Fork that fixes https://github.com/tauri-apps/wry/issues/1663
 wry = { git = "https://github.com/Ughuuu/wry", branch = "try-to-fix-application-window-crash-popup-linux", features = ["transparent", "devtools", "drag-drop", "os-webview", "x11"] }
 http = "1.1.0"
