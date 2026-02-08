@@ -770,7 +770,7 @@ dependencies = [
 [[package]]
 name = "godot"
 version = "0.4.4"
-source = "git+https://github.com/godot-rust/gdext?branch=master#8854ed860643155c4a102d5439a41c462c190542"
+source = "git+https://github.com/godot-rust/gdext?branch=master#5eeaa6f98f9149ae823a56538c8cb907fc6a151e"
 dependencies = [
  "godot-core",
  "godot-macros",
@@ -779,7 +779,7 @@ dependencies = [
 [[package]]
 name = "godot-bindings"
 version = "0.4.4"
-source = "git+https://github.com/godot-rust/gdext?branch=master#8854ed860643155c4a102d5439a41c462c190542"
+source = "git+https://github.com/godot-rust/gdext?branch=master#5eeaa6f98f9149ae823a56538c8cb907fc6a151e"
 dependencies = [
  "gdextension-api",
 ]
@@ -787,12 +787,12 @@ dependencies = [
 [[package]]
 name = "godot-cell"
 version = "0.4.4"
-source = "git+https://github.com/godot-rust/gdext?branch=master#8854ed860643155c4a102d5439a41c462c190542"
+source = "git+https://github.com/godot-rust/gdext?branch=master#5eeaa6f98f9149ae823a56538c8cb907fc6a151e"
 
 [[package]]
 name = "godot-codegen"
 version = "0.4.4"
-source = "git+https://github.com/godot-rust/gdext?branch=master#8854ed860643155c4a102d5439a41c462c190542"
+source = "git+https://github.com/godot-rust/gdext?branch=master#5eeaa6f98f9149ae823a56538c8cb907fc6a151e"
 dependencies = [
  "godot-bindings",
  "heck 0.5.0",
@@ -805,7 +805,7 @@ dependencies = [
 [[package]]
 name = "godot-core"
 version = "0.4.4"
-source = "git+https://github.com/godot-rust/gdext?branch=master#8854ed860643155c4a102d5439a41c462c190542"
+source = "git+https://github.com/godot-rust/gdext?branch=master#5eeaa6f98f9149ae823a56538c8cb907fc6a151e"
 dependencies = [
  "glam",
  "godot-bindings",
@@ -817,7 +817,7 @@ dependencies = [
 [[package]]
 name = "godot-ffi"
 version = "0.4.4"
-source = "git+https://github.com/godot-rust/gdext?branch=master#8854ed860643155c4a102d5439a41c462c190542"
+source = "git+https://github.com/godot-rust/gdext?branch=master#5eeaa6f98f9149ae823a56538c8cb907fc6a151e"
 dependencies = [
  "godot-bindings",
  "godot-codegen",
@@ -827,7 +827,7 @@ dependencies = [
 [[package]]
 name = "godot-macros"
 version = "0.4.4"
-source = "git+https://github.com/godot-rust/gdext?branch=master#8854ed860643155c4a102d5439a41c462c190542"
+source = "git+https://github.com/godot-rust/gdext?branch=master#5eeaa6f98f9149ae823a56538c8cb907fc6a151e"
 dependencies = [
  "godot-bindings",
  "proc-macro2",
@@ -2705,7 +2705,7 @@ checksum = "9edde0db4769d2dc68579893f2306b26c6ecfbe0ef499b013d731b7b9247e0b9"
 [[package]]
 name = "wry"
 version = "0.54.1"
-source = "git+https://github.com/Ughuuu/wry?branch=try-to-fix-application-window-crash-popup-linux#756cb451d8f9545e0284d0bb2abcdc5325fc3441"
+source = "git+https://github.com/Ughuuu/wry?branch=try-to-fix-application-window-crash-popup-linux#853298a6626c1f621e9bd08d746d0a82b8874a87"
 dependencies = [
  "base64",
  "block2",
